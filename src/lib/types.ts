@@ -29,6 +29,7 @@ export interface Product {
 export interface MonthlyData {
   month: string;
   sales: number;
+  purchase: number;
   profit: number;
   profitRate: number;
   achievementRate: number;

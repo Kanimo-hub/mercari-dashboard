@@ -20,16 +20,22 @@ interface Props {
 }
 
 function computeMonthlyData(products: Product[]): MonthlyData[] {
-  const completed = products.filter((p) => p.current_status === "取引完了" && p.sold_at);
+  const map = new Map<string, { sales: number; profit: number; purchase: number }>();
 
-  const map = new Map<string, { sales: number; profit: number }>();
-
-  for (const p of completed) {
-    const d = p.sold_at!;
-    const key = d.slice(0, 7); // YYYY-MM
-    const entry = map.get(key) ?? { sales: 0, profit: 0 };
+  // Sales & profit by sold_at
+  for (const p of products.filter((p) => p.current_status === "取引完了" && p.sold_at)) {
+    const key = p.sold_at!.slice(0, 7);
+    const entry = map.get(key) ?? { sales: 0, profit: 0, purchase: 0 };
     entry.sales += p.sold_price ?? 0;
     entry.profit += (p.net_amount ?? 0) - (p.price ?? 0) - (p.consumption_tax ?? 0);
+    map.set(key, entry);
+  }
+
+  // Purchase by purchase_date
+  for (const p of products.filter((p) => p.purchase_date)) {
+    const key = p.purchase_date!.slice(0, 7);
+    const entry = map.get(key) ?? { sales: 0, profit: 0, purchase: 0 };
+    entry.purchase += (p.price ?? 0) + (p.consumption_tax ?? 0);
     map.set(key, entry);
   }
 
@@ -40,9 +46,10 @@ function computeMonthlyData(products: Product[]): MonthlyData[] {
       return {
         month: `${y}年${Number(m)}月`,
         sales: v.sales,
+        purchase: v.purchase,
         profit: v.profit,
         profitRate: v.sales > 0 ? Math.round((v.profit / v.sales) * 100) : 0,
-        achievementRate: Math.round((v.sales / CONFIG.monthlyGoal) * 100),
+        achievementRate: v.sales > 0 ? Math.round((v.sales / CONFIG.monthlyGoal) * 100) : 0,
       };
     });
 }
@@ -74,11 +81,12 @@ export default function MonthlySalesChart({ products }: Props) {
           <Tooltip
             formatter={(value, name) => [
               formatYen(value as number),
-              name === "sales" ? "売上" : "利益",
+              name === "sales" ? "売上" : name === "purchase" ? "仕入" : "利益",
             ]}
           />
-          <Legend formatter={(v) => (v === "sales" ? "売上" : "利益")} />
+          <Legend formatter={(v) => (v === "sales" ? "売上" : v === "purchase" ? "仕入" : "利益")} />
           <Bar dataKey="sales" fill="#4f46e5" radius={[4, 4, 0, 0]} name="sales" />
+          <Bar dataKey="purchase" fill="#f59e0b" radius={[4, 4, 0, 0]} name="purchase" />
           <Line
             type="monotone"
             dataKey="profit"
@@ -97,6 +105,7 @@ export default function MonthlySalesChart({ products }: Props) {
             <tr className="border-b text-left text-subtext">
               <th className="pb-2 font-medium">月</th>
               <th className="pb-2 font-medium text-right">売上</th>
+              <th className="pb-2 font-medium text-right">仕入</th>
               <th className="pb-2 font-medium text-right">利益</th>
               <th className="pb-2 font-medium text-right">利益率</th>
               <th className="pb-2 font-medium text-right">目標達成率</th>
@@ -107,6 +116,7 @@ export default function MonthlySalesChart({ products }: Props) {
               <tr key={d.month} className="border-b last:border-0">
                 <td className="py-2">{d.month}</td>
                 <td className="py-2 text-right">{formatYen(d.sales)}</td>
+                <td className="py-2 text-right text-warning">{formatYen(d.purchase)}</td>
                 <td className={`py-2 text-right ${d.profit >= 0 ? "text-success" : "text-red-500"}`}>
                   {formatYen(d.profit)}
                 </td>
