@@ -6,6 +6,7 @@ import SummaryCards from "@/components/SummaryCards";
 import MonthlySalesChart from "@/components/MonthlySalesChart";
 import Filters from "@/components/Filters";
 import ProductTable from "@/components/ProductTable";
+import MonthlyGoal from "@/components/MonthlyGoal";
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -74,6 +75,7 @@ export default function Home() {
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-6">
         <SummaryCards products={products} />
+        <MonthlyGoal products={products} />
         <MonthlySalesChart products={products} />
 
         <div className="rounded-lg bg-card p-4 shadow-sm">

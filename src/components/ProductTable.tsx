@@ -2,17 +2,25 @@
 
 import { useState } from "react";
 import { Product } from "@/lib/types";
+import { CONFIG } from "@/lib/config";
 
 interface Props {
   products: Product[];
 }
 
-type SortKey = "item_id" | "title" | "brand" | "category" | "size" | "current_status" | "list_price" | "sold_price" | "profit";
+type SortKey = "item_id" | "title" | "brand" | "category" | "size" | "current_status" | "days_on_market" | "list_price" | "sold_price" | "profit";
 type SortDir = "asc" | "desc";
 
 function getProfit(p: Product): number | null {
   if (p.net_amount == null || p.price == null) return null;
   return p.net_amount - p.price - (p.consumption_tax ?? 0);
+}
+
+function getDaysOnMarket(p: Product): number | null {
+  if (p.current_status !== "出品中" || !p.listed_at) return null;
+  const listed = new Date(p.listed_at);
+  const today = new Date();
+  return Math.floor((today.getTime() - listed.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function formatCurrency(v: number | null): string {
@@ -29,6 +37,7 @@ const columns: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "category", label: "カテゴリ" },
   { key: "size", label: "サイズ" },
   { key: "current_status", label: "ステータス" },
+  { key: "days_on_market", label: "滞留日数", align: "right" },
   { key: "list_price", label: "出品価格", align: "right" },
   { key: "sold_price", label: "売却価格", align: "right" },
   { key: "profit", label: "利益", align: "right" },
@@ -56,6 +65,9 @@ export default function ProductTable({ products }: Props) {
     if (sortKey === "profit") {
       av = getProfit(a);
       bv = getProfit(b);
+    } else if (sortKey === "days_on_market") {
+      av = getDaysOnMarket(a);
+      bv = getDaysOnMarket(b);
     } else {
       av = a[sortKey];
       bv = b[sortKey];
@@ -76,6 +88,13 @@ export default function ProductTable({ products }: Props) {
     if (s === "取引完了") return "bg-green-100 text-green-700";
     if (s === "出品中") return "bg-blue-100 text-blue-700";
     return "bg-gray-100 text-gray-700";
+  };
+
+  const daysColor = (days: number | null) => {
+    if (days == null) return "";
+    if (days >= CONFIG.warningDays) return "text-red-500 font-semibold";
+    if (days >= CONFIG.cautionDays) return "text-warning font-medium";
+    return "";
   };
 
   return (
@@ -103,6 +122,7 @@ export default function ProductTable({ products }: Props) {
           <tbody>
             {pageProducts.map((p) => {
               const profit = getProfit(p);
+              const days = getDaysOnMarket(p);
               return (
                 <tr key={p.item_id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                   <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{p.item_id}</td>
@@ -114,6 +134,9 @@ export default function ProductTable({ products }: Props) {
                     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(p.current_status)}`}>
                       {p.current_status}
                     </span>
+                  </td>
+                  <td className={`whitespace-nowrap px-4 py-3 text-right ${daysColor(days)}`}>
+                    {days != null ? `${days}日` : "-"}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right">{formatCurrency(p.list_price)}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-right">{formatCurrency(p.sold_price)}</td>
@@ -129,7 +152,6 @@ export default function ProductTable({ products }: Props) {
         </table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t px-4 py-3">
           <p className="text-sm text-subtext">

@@ -13,7 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const MONTHLY_TARGET = 100000;
+import { CONFIG } from "@/lib/config";
 
 interface Props {
   products: Product[];
@@ -42,7 +42,7 @@ function computeMonthlyData(products: Product[]): MonthlyData[] {
         sales: v.sales,
         profit: v.profit,
         profitRate: v.sales > 0 ? Math.round((v.profit / v.sales) * 100) : 0,
-        achievementRate: Math.round((v.sales / MONTHLY_TARGET) * 100),
+        achievementRate: Math.round((v.sales / CONFIG.monthlyGoal) * 100),
       };
     });
 }
@@ -112,9 +112,21 @@ export default function MonthlySalesChart({ products }: Props) {
                 </td>
                 <td className="py-2 text-right">{d.profitRate}%</td>
                 <td className="py-2 text-right">
-                  <span className={d.achievementRate >= 100 ? "text-success font-semibold" : ""}>
-                    {d.achievementRate}%
-                  </span>
+                  <div className="flex items-center justify-end gap-2">
+                    <span className={d.achievementRate >= 100 ? "text-success font-semibold" : ""}>
+                      {d.achievementRate}%
+                    </span>
+                    <div className="h-2 w-16 overflow-hidden rounded-full bg-gray-100">
+                      <div
+                        className={`h-full rounded-full ${
+                          d.achievementRate >= 100 ? "bg-[#10b981]" :
+                          d.achievementRate >= 71 ? "bg-[#3b82f6]" :
+                          d.achievementRate >= 31 ? "bg-[#f59e0b]" : "bg-[#ef4444]"
+                        }`}
+                        style={{ width: `${Math.min(d.achievementRate, 100)}%` }}
+                      />
+                    </div>
+                  </div>
                 </td>
               </tr>
             ))}
