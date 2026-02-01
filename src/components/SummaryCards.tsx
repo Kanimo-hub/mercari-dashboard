@@ -32,7 +32,7 @@ export default function SummaryCards({ products }: Props) {
   );
 
   const inventoryAmount = inventory.reduce(
-    (sum, p) => sum + (p.price ?? 0) + (p.consumption_tax ?? 0),
+    (sum, p) => sum + (p.price ?? 0),
     0
   );
 

@@ -35,7 +35,7 @@ function computeMonthlyData(products: Product[]): MonthlyData[] {
   for (const p of products.filter((p) => p.purchase_date)) {
     const key = p.purchase_date!.slice(0, 7);
     const entry = map.get(key) ?? { sales: 0, profit: 0, purchase: 0 };
-    entry.purchase += (p.price ?? 0) + (p.consumption_tax ?? 0);
+    entry.purchase += p.price ?? 0;
     map.set(key, entry);
   }
 
